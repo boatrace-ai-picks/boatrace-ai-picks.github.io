@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ボートレースAI予想 2026-10-29</title>
+<style>
+  :root {
+    --bg: #F2F5F5; --surface: #FFFFFF; --ink: #16242E; --muted: #5A6B74;
+    --line: #D9E1E3; --accent: #D9532B; --accent-ink: #FFFFFF;
+    --sea: #19606E; --sea-soft: #E4EEF0; --pill-bg: #FBEAE3;
+    --good: #1E7A46; --good-soft: #E2F1E8; --miss: #8A8F93; --miss-soft: #ECEEEF;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0E181F; --surface: #17252F; --ink: #E8EEF0; --muted: #93A4AD;
+      --line: #26363F; --accent: #F0703F; --accent-ink: #1A0E08;
+      --sea: #7FBECD; --sea-soft: #14303A; --pill-bg: #3A2118;
+      --good: #5BC98C; --good-soft: #14301F; --miss: #7C8A92; --miss-soft: #202B31;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 20px 16px 48px; }
+
+  header.site { display: flex; flex-direction: column; gap: 2px; margin-bottom: 14px; }
+  .brand { font-size: 13px; font-weight: 700; letter-spacing: .14em; color: var(--sea); text-transform: uppercase; }
+  h1 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: .01em; text-wrap: balance; }
+  .dateline { font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .dateline strong { color: var(--ink); font-weight: 700; }
+  .day-sum { color: var(--good); font-weight: 700; }
+
+  .datenav { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .datenav a.nav, .datenav span.nav {
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+    font-size: 13px; font-weight: 700; border-radius: 8px; padding: 5px 12px;
+    text-decoration: none; display: inline-block;
+  }
+  .datenav span.nav { opacity: .35; }
+  .datenav input[type="date"] {
+    font: inherit; font-size: 13.5px; padding: 4px 8px; border: 1px solid var(--line);
+    border-radius: 8px; background: var(--surface); color: var(--ink);
+  }
+  .notice { font-size: 12px; color: var(--accent); min-height: 1.2em; }
+
+  .badge-retro { background: var(--miss-soft); color: var(--miss); border-radius: 999px;
+                 font-size: 11px; font-weight: 700; padding: 1px 9px; margin-left: 8px; vertical-align: 2px; }
+  .retro-banner { background: var(--miss-soft); color: var(--muted); border: 1px dashed var(--miss);
+                  border-radius: 6px; padding: 8px 12px; font-size: 12.5px; margin-bottom: 14px; }
+
+  .controls { background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+              padding: 12px 14px; margin-bottom: 22px; display: flex; flex-direction: column; gap: 10px; }
+  .ctl-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .ctl-label { font-size: 11.5px; font-weight: 700; color: var(--muted); letter-spacing: .08em; min-width: 64px; }
+  .ctl-note { font-size: 11.5px; color: var(--muted); }
+  .ctl-note:empty { display: none; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button {
+    appearance: none; border: 0; background: transparent; color: var(--muted);
+    font: inherit; font-size: 13.5px; font-weight: 700; padding: 5px 16px; cursor: pointer;
+  }
+  .seg button.on { background: var(--sea); color: var(--bg); }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    appearance: none; border: 1px solid var(--line); background: transparent; color: var(--muted);
+    font: inherit; font-size: 12.5px; font-weight: 700; border-radius: 999px; padding: 3px 12px; cursor: pointer;
+  }
+  .chip.on { background: var(--sea-soft); border-color: var(--sea); color: var(--sea); }
+  .chip.all { border-style: dashed; }
+  button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  section.block { margin-bottom: 26px; }
+  .block-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; }
+  .block-head h2 { margin: 0; font-size: 17px; font-weight: 800; }
+  .block-head .window { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  .race { background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+          padding: 14px 16px; display: grid; grid-template-columns: 56px 1fr auto;
+          gap: 4px 14px; align-items: center; }
+  .race + .race { margin-top: 8px; }
+  .close { text-align: center; }
+  .close .t { font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .close .l { font-size: 10.5px; color: var(--muted); letter-spacing: .08em; }
+  .meta { min-width: 0; }
+  .meta .name { font-size: 16.5px; font-weight: 800; display: flex; align-items: center; flex-wrap: wrap; }
+  .meta .name .grade { font-size: 12px; font-weight: 600; color: var(--muted); margin-left: 8px; }
+  .meta .name .wind { font-size: 12px; font-weight: 600; color: var(--muted); margin-left: 8px; white-space: nowrap; }
+  .extlinks { display: inline-flex; gap: 7px; margin-left: auto; padding-left: 10px; }
+  .extlinks a { display: inline-flex; line-height: 0; border-radius: 50%; }
+  /* ロゴは濃色・小サイズで潰れるため、白い下地＋枠線の上に contain で載せる（両テーマ共通） */
+  .extlinks img { width: 28px; height: 28px; border-radius: 50%; object-fit: contain;
+                  background: #FFFFFF; border: 1px solid var(--line); padding: 2px; display: block; }
+  .resbadge { font-size: 10.5px; font-weight: 800; border-radius: 999px; padding: 1px 8px; margin-left: 8px; vertical-align: 2px; }
+  .resbadge.hit { background: var(--good-soft); color: var(--good); }
+  .resbadge.miss { background: var(--miss-soft); color: var(--miss); }
+  .tickets { display: flex; align-items: center; gap: 10px; margin-top: 5px; flex-wrap: wrap; }
+  .ticket { display: inline-flex; align-items: center; gap: 4px; font-weight: 800;
+            font-size: 15px; font-variant-numeric: tabular-nums; }
+  .boat { width: 22px; height: 22px; border-radius: 4px; display: inline-flex; align-items: center;
+          justify-content: center; font-size: 13px; font-weight: 800; border: 1px solid rgba(0,0,0,.22); }
+  .b1 { background: #FFFFFF; color: #1A1A1A; }
+  .b2 { background: #26282B; color: #FFFFFF; }
+  .b3 { background: #DE3A44; color: #FFFFFF; }
+  .b4 { background: #1D6FD6; color: #FFFFFF; }
+  .b5 { background: #F2C50F; color: #3A2E00; }
+  .b6 { background: #2FA35C; color: #FFFFFF; }
+  .dash { color: var(--muted); font-weight: 600; }
+  .story { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+  .why { font-size: 12px; color: var(--sea); margin-top: 3px; }
+
+  .conf { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+  .conf .v { font-size: 23px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .conf .l { font-size: 10.5px; color: var(--muted); letter-spacing: .06em; }
+  .hi { display: inline-block; background: var(--pill-bg); color: var(--accent);
+        font-size: 10.5px; font-weight: 700; border-radius: 999px; padding: 1px 8px; }
+  .conf.top .v { color: var(--accent); }
+
+  .empty { border: 1px dashed var(--line); border-radius: 10px; padding: 16px;
+           font-size: 13px; color: var(--muted); text-align: center; }
+
+  .record { background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+            padding: 14px 16px; font-size: 13px; }
+  .record .head { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 14px; margin-bottom: 6px; }
+  .badge-verifying { background: var(--sea-soft); color: var(--sea); border-radius: 999px;
+                     font-size: 11px; font-weight: 700; padding: 1px 9px; }
+  .record dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 14px; margin: 0; }
+  .record dt { color: var(--muted); }
+  .record dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+  footer.site { margin-top: 26px; font-size: 11.5px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; }
+  footer.site p { margin: 0 0 6px; }
+
+  @media (max-width: 480px) {
+    .race { grid-template-columns: 48px 1fr; }
+    .conf { grid-column: 2; flex-direction: row; align-items: baseline; gap: 8px; justify-content: flex-end; }
+    /* 注記はトグルの右に押し込まず折返し専用行へ（ラベルの左揃えを崩さない） */
+    .ctl-note { flex-basis: 100%; }
+    .seg button { padding: 5px 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="site">
+    <div class="brand">Boatrace AI Picks</div>
+    <h1>本日のレース予想</h1>
+    <div class="dateline" id="dateline"></div>
+  </header>
+
+  
+
+  <div class="datenav" id="datenav">
+    <input type="date" id="datepick">
+    <span class="notice" id="date-notice"></span>
+  </div>
+
+  <div class="controls">
+    <div class="ctl-row">
+      <span class="ctl-label">選出</span>
+      <div class="seg" id="seg-model">
+        <button type="button" data-model="cov" class="on">買い目確率順</button>
+        <button type="button" data-model="morning">朝予測順</button>
+      </div>
+      <span class="ctl-note" id="model-note"></span>
+    </div>
+    <div class="ctl-row">
+      <span class="ctl-label">表示本数</span>
+      <div class="seg" id="seg-n">
+        <button type="button" data-n="3" class="on">3本ずつ</button>
+        <button type="button" data-n="10">10本ずつ</button>
+      </div>
+      <span class="ctl-note" id="n-note"></span>
+    </div>
+    <div class="ctl-row">
+      <span class="ctl-label">並び順</span>
+      <div class="seg" id="seg-sort">
+        <button type="button" data-sort="close" class="on">締切順</button>
+        <button type="button" data-sort="score">確信度順</button>
+      </div>
+    </div>
+    <div class="ctl-row">
+      <span class="ctl-label">場で絞る</span>
+      <div class="chips" id="venue-chips"></div>
+    </div>
+  </div>
+
+  <section class="block">
+    <div class="block-head"><h2 id="lunch-title">ランチタイム 3本</h2><span class="window">締切 11:00–15:00</span></div>
+    <div id="lunch-list"></div>
+  </section>
+
+  <section class="block">
+    <div class="block-head"><h2 id="teppan-title">鉄板 3本</h2><span class="window" id="teppan-window">締切 11:00–20:00・ランチ選出を除く</span></div>
+    <div id="teppan-list"></div>
+  </section>
+
+  <section class="block">
+    <div class="record">
+      <div class="head">的中実績<span class="badge-verifying">検証中 · <span id="n-shadow">–</span>/28 運用日</span></div>
+      <dl>
+        <dt>ライブ日次上位10</dt><dd>買い目確率順 <span id="agg-cov">–</span> ・ 朝予測順 <span id="agg-morning">–</span>（2026-07-16 開始・後追い生成日を除く）</dd>
+        <dt>参考: バックテスト</dt><dd>2026-01〜07（189日）日次上位10 朝予測順 57.4%（2連単2点）</dd>
+      </dl>
+    </div>
+  </section>
+
+  <footer class="site">
+    <p>本ページは機械学習モデルによる予測の研究公開です。的中を保証するものではなく、投資助言でもありません。舟券の購入は自己責任で行ってください。</p>
+    <p>確信度 = 買い目2点のどちらかが的中する確率（朝予測モデルの出力から算出。朝予測順表示では確率の代わりに朝予測モデルの日次順位を表示）。買い目は2連単2点。根拠の pt はモデルが判断に使った特徴量の寄与度。風向・風速は朝予測時点の予報値（当日の実測とは異なることがあります）。20歳未満の方は舟券を購入できません。</p>
+  </footer>
+</div>
+
+<!-- 毎日変わる値（日付一覧・最終更新・累計実績）は全ページ共通の site.js に置く。
+     ページに埋め込むと、日が替わるたびに全ページ（約300枚）が書き換わって公開リポジトリが
+     毎日 1MB 前後ずつ育つ（2026-10-27 実測: 212回の公開で 127MB）。
+     <script src> は file:// でも読める（fetch は使わない）。 -->
+<script src="site.js"></script>
+<script>
+const PAGE_DATE = "20261029";                 // YYYYMMDD
+const DAY = [{"v":"とこなめ","vc":"08","rno":8,"close":"13:47","grade":"一般","t1":"1-3","t2":"1-2","picks":["1-3","1-2"],"cov":0.628,"score":0.66216,"mrank":1,"why":"逃げ: ①の実力が一枚上（+18pt） ／ 2着: ③は相手の中で勝率上位（+15pt）","wind":"南東 2.4m/s"},{"v":"徳山","vc":"18","rno":4,"close":"10:09","grade":"ガチトク予選","t1":"1-2","t2":"1-3","picks":["1-2","1-3"],"cov":0.6346,"score":0.68361,"mrank":2,"why":"逃げ: イン逃げが決まりやすい水面（+20pt） ／ 2着: ②は相手の中で勝率上位（+22pt）","wind":"南東 2.4m/s"},{"v":"蒲郡","vc":"07","rno":12,"close":"20:38","grade":"予選記者特選","t1":"1-4","t2":"1-2","picks":["1-4","1-2"],"cov":0.6713,"score":0.67943,"mrank":3,"why":"逃げ: ①選手の1着実績が強力（+22pt） ／ 2着: ①は当地で強い（+18pt）","wind":"東 3.2m/s"},{"v":"からつ","vc":"23","rno":1,"close":"08:43","grade":"朝１戦","t1":"1-3","t2":"1-2","picks":["1-3","1-2"],"cov":0.609,"score":0.61576,"mrank":4,"why":"逃げ: ①の実力が一枚上（+23pt） ／ 2着: ③は相手の中で勝率上位（+15pt）","wind":"南西 3.2m/s"},{"v":"尼崎","vc":"13","rno":11,"close":"15:50","grade":"予選","t1":"1-3","t2":"1-4","picks":["1-3","1-4"],"cov":0.5827,"score":0.58192,"mrank":5,"why":"逃げ: ①選手の1着実績が強力（+16pt） ／ 2着: ③は相手の中で勝率上位（+23pt）","wind":"東 1.3m/s"},{"v":"鳴門","vc":"14","rno":3,"close":"09:27","grade":"どきどきなる","t1":"1-2","t2":"1-3","picks":["1-2","1-3"],"cov":0.5581,"score":0.56122,"mrank":6,"why":"逃げ: ①の実力が一枚上（+29pt） ／ 2着: ②は相手の中で勝率上位（+18pt）","wind":"南東 4.5m/s"},{"v":"桐生","vc":"01","rno":11,"close":"20:16","grade":"準優勝戦","t1":"1-2","t2":"1-3","picks":["1-2","1-3"],"cov":0.5781,"score":0.58501,"mrank":7,"why":"逃げ: ①の実力が一枚上（+16pt） ／ 2着: ②は相手の中で勝率上位（+19pt）","wind":"北 1.0m/s"},{"v":"蒲郡","vc":"07","rno":9,"close":"19:04","grade":"予選特賞","t1":"1-3","t2":"1-4","picks":["1-3","1-4"],"cov":0.5715,"score":0.60944,"mrank":8,"why":"逃げ: ①の実力が一枚上（+29pt） ／ 2着: ③は相手の中で勝率上位（+15pt）","wind":"東 3.2m/s"},{"v":"からつ","vc":"23","rno":5,"close":"10:32","grade":"レッツ５特賞","t1":"1-2","t2":"1-3","picks":["1-2","1-3"],"cov":0.5277,"score":0.58108,"mrank":9,"why":"逃げ: ①の実力が一枚上（+17pt） ／ 2着: ②は相手の中で勝率上位（+16pt）","wind":"南 2.9m/s"},{"v":"とこなめ","vc":"08","rno":12,"close":"16:05","grade":"準優勝戦","t1":"1-2","t2":"1-3","picks":["1-2","1-3"],"cov":0.581,"score":0.59688,"mrank":10,"why":"逃げ: ①の実力が一枚上（+13pt） ／ 2着: ②は今節の展示が好調（+11pt）","wind":"南東 2.4m/s"},{"v":"尼崎","vc":"13","rno":12,"close":"16:35","grade":"予選","t1":"1-3","t2":"1-2","picks":["1-3","1-2"],"cov":0.5793,"score":0.59397,"mrank":11,"why":"逃げ: ①の実力が一枚上（+16pt）","wind":"東 1.5m/s"},{"v":"からつ","vc":"23","rno":11,"close":"13:43","grade":"宝当特選","t1":"1-2","t2":"1-3","picks":["1-2","1-3"],"cov":0.5231,"score":0.54455,"mrank":12,"why":"逃げ: ①選手の1着実績が強力（+10pt） ／ 2着: ②は相手の中で勝率上位（+21pt）","wind":"南 2.8m/s"},{"v":"児島","vc":"16","rno":11,"close":"15:58","grade":"予選特選","t1":"1-3","t2":"1-2","picks":["1-3","1-2"],"cov":0.5418,"score":0.54805,"mrank":13,"why":"2着: ③は相手の中で勝率上位（+19pt）","wind":"南東 2.9m/s"},{"v":"児島","vc":"16","rno":12,"close":"16:30","grade":"記者選抜戦","t1":"1-2","t2":"1-4","picks":["1-2","1-4"],"cov":0.5909,"score":0.60709,"mrank":14,"why":"逃げ: ①選手の1着実績が強力（+17pt） ／ 2着: ②は今節の展示が好調（+11pt）","wind":"南東 3.3m/s"},{"v":"蒲郡","vc":"07","rno":10,"close":"19:36","grade":"予選特賞","t1":"1-3","t2":"1-2","picks":["1-3","1-2"],"cov":0.5832,"score":0.60374,"mrank":15,"why":"逃げ: ①は今節の展示が好調（+16pt） ／ 2着: ③は相手の中で勝率上位（+25pt）","wind":"東 3.1m/s"},{"v":"丸亀","vc":"15","rno":10,"close":"19:25","grade":"蒼月まるる特","t1":"1-2","t2":"1-4","picks":["1-2","1-4"],"cov":0.4872,"score":0.5746,"mrank":16,"why":"2着: ②は相手の中で勝率上位（+20pt）","wind":"南東 2.9m/s"},{"v":"蒲郡","vc":"07","rno":11,"close":"20:07","grade":"予選特選","t1":"1-4","t2":"1-3","picks":["1-4","1-3"],"cov":0.6091,"score":0.61056,"mrank":17,"why":"逃げ: ①は今節の展示が好調（+17pt） ／ 2着: ④は今節の展示が好調（+12pt）","wind":"東 3.3m/s"},{"v":"とこなめ","vc":"08","rno":2,"close":"10:43","grade":"一般","t1":"1-3","t2":"1-2","picks":["1-3","1-2"],"cov":0.5262,"score":0.5922,"mrank":18,"why":"逃げ: ①は今節の展示が好調（+11pt） ／ 2着: ③は相手の中で勝率上位（+20pt）","wind":"南東 2.4m/s"},{"v":"徳山","vc":"18","rno":3,"close":"09:43","grade":"決めトク予選","t1":"1-3","t2":"1-2","picks":["1-3","1-2"],"cov":0.5071,"score":0.52205,"mrank":19,"why":"逃げ: ①の実力が一枚上（+22pt）","wind":"南東 2.4m/s"},{"v":"からつ","vc":"23","rno":12,"close":"14:23","grade":"からっキー選","t1":"1-2","t2":"1-4","picks":["1-2","1-4"],"cov":0.5,"score":0.50059,"mrank":20,"why":"2着: ②は今節の展示が好調（+18pt）","wind":"南 2.4m/s"},{"v":"尼崎","vc":"13","rno":10,"close":"15:08","grade":"予選","t1":"1-3","t2":"1-2","picks":["1-3","1-2"],"cov":0.5149,"score":0.49702,"mrank":21,"why":"逃げ: ①の実力が一枚上（+17pt） ／ 2着: ③は相手の中で勝率上位（+16pt）","wind":"東 1.3m/s"},{"v":"とこなめ","vc":"08","rno":11,"close":"15:23","grade":"準優勝戦","t1":"1-2","t2":"1-3","picks":["1-2","1-3"],"cov":0.483,"score":0.51529,"mrank":22,"why":"逃げ: ①の実力が一枚上（+15pt） ／ 2着: ②は相手の中で勝率上位（+19pt）","wind":"南東 2.4m/s"},{"v":"とこなめ","vc":"08","rno":6,"close":"12:40","grade":"昼トコ小判Ｒ","t1":"1-2","t2":"1-3","picks":["1-2","1-3"],"cov":0.5621,"score":0.5614,"mrank":23,"why":"逃げ: ①の実力が一枚上（+29pt）","wind":"南東 2.4m/s"},{"v":"とこなめ","vc":"08","rno":9,"close":"14:18","grade":"一般","t1":"1-3","t2":"1-2","picks":["1-3","1-2"],"cov":0.5602,"score":0.58933,"mrank":24,"why":"逃げ: ①の実力が一枚上（+32pt）","wind":"南東 2.4m/s"},{"v":"桐生","vc":"01","rno":12,"close":"20:45","grade":"一般特賞","t1":"1-2","t2":"1-3","picks":["1-2","2-1"],"cov":0.5326,"score":0.55911,"mrank":25,"why":"逃げ: ①の実力が一枚上（+33pt） ／ 2着: ②は今節の展示が好調（+20pt）","wind":"北西 0.7m/s"},{"v":"児島","vc":"16","rno":5,"close":"12:54","grade":"予選","t1":"1-4","t2":"1-2","picks":["1-4","1-2"],"cov":0.5374,"score":0.58284,"mrank":26,"why":"逃げ: ①は今節の展示が好調（+18pt） ／ 2着: ④は相手の中で勝率上位（+18pt）","wind":"東 3.0m/s"},{"v":"からつ","vc":"23","rno":2,"close":"09:09","grade":"モー２ング戦","t1":"1-3","t2":"1-2","picks":["1-3","1-2"],"cov":0.4598,"score":0.51596,"mrank":27,"why":"2着: ③は相手の中で勝率上位（+24pt）","wind":"南西 2.7m/s"},{"v":"徳山","vc":"18","rno":12,"close":"14:27","grade":"ドリーム戦","t1":"1-3","t2":"1-2","picks":["1-3","1-2"],"cov":0.5373,"score":0.54822,"mrank":28,"why":"逃げ: イン逃げが決まりやすい水面（+23pt）","wind":"南東 2.4m/s"},{"v":"とこなめ","vc":"08","rno":1,"close":"10:16","grade":"朝トコ小判Ｒ","t1":"1-3","t2":"1-5","picks":["1-3","1-5"],"cov":0.5168,"score":0.51041,"mrank":29,"why":"逃げ: ①の実力が一枚上（+31pt）","wind":"南東 2.4m/s"},{"v":"徳山","vc":"18","rno":1,"close":"08:51","grade":"朝トク予選","t1":"1-3","t2":"1-2","picks":["1-3","1-2"],"cov":0.5149,"score":0.55001,"mrank":30,"why":"逃げ: ①の実力が一枚上（+31pt）","wind":"南東 2.4m/s"},{"v":"徳山","vc":"18","rno":9,"close":"12:47","grade":"推しトク特賞","t1":"1-3","t2":"1-2","picks":["1-3","1-2"],"cov":0.4876,"score":0.48732,"mrank":31,"why":"逃げ: イン逃げが決まりやすい水面（+20pt）","wind":"南東 2.4m/s"},{"v":"尼崎","vc":"13","rno":8,"close":"14:02","grade":"予選","t1":"1-3","t2":"1-2","picks":["1-3","1-2"],"cov":0.4907,"score":0.49512,"mrank":32,"why":"逃げ: ①の実力が一枚上（+18pt）","wind":"南東 1.3m/s"},{"v":"児島","vc":"16","rno":7,"close":"13:57","grade":"予選","t1":"1-2","t2":"1-3","picks":["1-2","2-1"],"cov":0.4716,"score":0.53224,"mrank":33,"why":"2着: ②は相手の中で勝率上位（+23pt）","wind":"東 3.8m/s"},{"v":"尼崎","vc":"13","rno":4,"close":"11:57","grade":"予選","t1":"1-2","t2":"1-3","picks":["1-2","2-1"],"cov":0.4281,"score":0.47565,"mrank":34,"why":"逃げ: ①選手の1着実績が強力（+20pt）","wind":"西 1.8m/s"},{"v":"とこなめ","vc":"08","rno":10,"close":"14:50","grade":"準優勝戦","t1":"1-2","t2":"1-4","picks":["1-2","1-4"],"cov":0.4982,"score":0.49408,"mrank":35,"why":"逃げ: ①は今節の成績上位（+11pt） ／ 2着: ②は今節の展示が好調（+15pt）","wind":"南東 2.4m/s"},{"v":"江戸川","vc":"03","rno":4,"close":"12:17","grade":"予選","t1":"1-4","t2":"1-2","picks":["1-4","1-2"],"cov":0.5348,"score":0.53747,"mrank":36,"why":"逃げ: ①の実力が一枚上（+17pt） ／ 2着: ④は相手の中で勝率上位（+16pt）","wind":"南東 1.7m/s"},{"v":"尼崎","vc":"13","rno":1,"close":"10:37","grade":"予選","t1":"1-2","t2":"1-3","picks":["1-2","1-3"],"cov":0.4633,"score":0.47117,"mrank":37,"why":"逃げ: ①選手の1着実績が強力（+13pt）","wind":"東 0.8m/s"},{"v":"徳山","vc":"18","rno":2,"close":"09:17","grade":"狙いトク特選","t1":"1-3","t2":"1-2","picks":["1-3","1-2"],"cov":0.4539,"score":0.47237,"mrank":38,"why":"逃げ: イン逃げが決まりやすい水面（+18pt） ／ 2着: ③は相手の中で勝率上位（+15pt）","wind":"南東 2.4m/s"},{"v":"江戸川","vc":"03","rno":5,"close":"12:43","grade":"予選","t1":"1-2","t2":"1-3","picks":["1-2","1-3"],"cov":0.4177,"score":0.45324,"mrank":39,"why":"2着: ②は相手の中で勝率上位（+21pt）","wind":"南東 1.5m/s"},{"v":"児島","vc":"16","rno":8,"close":"14:25","grade":"予選","t1":"1-4","t2":"1-2","picks":["1-4","1-2"],"cov":0.4624,"score":0.47625,"mrank":40,"why":"逃げ: ①の実力が一枚上（+12pt） ／ 2着: ④は相手の中で級別上位（+20pt）","wind":"東 3.4m/s"},{"v":"丸亀","vc":"15","rno":9,"close":"18:54","grade":"まるがめ特賞","t1":"1-3","t2":"1-2","picks":["1-3","1-2"],"cov":0.4707,"score":0.49532,"mrank":41,"why":"逃げ: ①の実力が一枚上（+21pt） ／ 2着: ③のモーター2連率（+14pt）","wind":"南東 2.6m/s"},{"v":"とこなめ","vc":"08","rno":5,"close":"12:10","grade":"三Ａ傑戦","t1":"1-3","t2":"1-4","picks":["1-3","1-4"],"cov":0.4337,"score":0.43038,"mrank":42,"why":"","wind":"南東 2.4m/s"},{"v":"鳴門","vc":"14","rno":1,"close":"08:35","grade":"とるならなる","t1":"1-3","t2":"1-2","picks":["1-3","1-2"],"cov":0.4441,"score":0.45003,"mrank":43,"why":"逃げ: ①の実力が一枚上（+23pt）","wind":"南東 3.0m/s"},{"v":"江戸川","vc":"03","rno":11,"close":"15:29","grade":"予選特選","t1":"1-2","t2":"1-3","picks":["1-2","1-3"],"cov":0.4345,"score":0.4266,"mrank":44,"why":"逃げ: ①選手の1着実績が強力（+17pt）","wind":"北 1.2m/s"},{"v":"江戸川","vc":"03","rno":12,"close":"16:00","grade":"記者選抜戦","t1":"1-2","t2":"1-3","picks":["1-2","1-3"],"cov":0.4444,"score":0.45318,"mrank":45,"why":"逃げ: ①の実力が一枚上（+16pt） ／ 2着: ②は相手の中で勝率上位（+16pt）","wind":"北 1.4m/s"},{"v":"尼崎","vc":"13","rno":9,"close":"14:34","grade":"予選","t1":"1-4","t2":"1-2","picks":["1-4","1-2"],"cov":0.4359,"score":0.40713,"mrank":46,"why":"逃げ: ①選手の1着実績が強力（+19pt） ／ 2着: ④選手の1着実績が強力（+13pt）","wind":"南東 1.5m/s"},{"v":"桐生","vc":"01","rno":2,"close":"15:45","grade":"一般","t1":"1-2","t2":"1-3","picks":["1-2","1-3"],"cov":0.407,"score":0.44085,"mrank":47,"why":"","wind":"南東 2.0m/s"},{"v":"鳴門","vc":"14","rno":12,"close":"14:13","grade":"ドリーム戦","t1":"1-2","t2":"1-4","picks":["1-2","1-4"],"cov":0.4346,"score":0.42201,"mrank":48,"why":"逃げ: ①の実力が一枚上（+32pt）","wind":"南 5.6m/s"},{"v":"蒲郡","vc":"07","rno":2,"close":"15:48","grade":"予選","t1":"1-3","t2":"1-2","picks":["1-3","1-2"],"cov":0.38,"score":0.42307,"mrank":49,"why":"","wind":"南東 4.1m/s"},{"v":"丸亀","vc":"15","rno":8,"close":"18:23","grade":"釜揚げ８","t1":"1-2","t2":"1-3","picks":["1-2","1-3"],"cov":0.4305,"score":0.45879,"mrank":50,"why":"2着: ②は相手の中で勝率上位（+19pt）","wind":"東 2.5m/s"},{"v":"からつ","vc":"23","rno":3,"close":"09:35","grade":"３ライズ戦","t1":"1-5","t2":"1-3","picks":["1-5","1-3"],"cov":0.409,"score":0.40113,"mrank":51,"why":"逃げ: ①の実力が一枚上（+33pt） ／ 2着: ⑤は相手の中で勝率上位（+21pt）","wind":"南西 2.5m/s"},{"v":"尼崎","vc":"13","rno":5,"close":"12:28","grade":"予選","t1":"1-3","t2":"1-2","picks":["1-3","1-2"],"cov":0.3826,"score":0.3946,"mrank":52,"why":"2着: ③の全国勝率が高い（+18pt）","wind":"西 2.0m/s"},{"v":"丸亀","vc":"15","rno":11,"close":"19:58","grade":"一般選抜","t1":"1-2","t2":"1-3","picks":["1-2","1-3"],"cov":0.3824,"score":0.42015,"mrank":53,"why":"2着: ②は今節の展示が好調（+14pt）","wind":"南東 2.2m/s"},{"v":"丸亀","vc":"15","rno":6,"close":"17:28","grade":"かけうどん６","t1":"1-3","t2":"1-4","picks":["1-3","1-4"],"cov":0.411,"score":0.41539,"mrank":54,"why":"2着: ③は相手の中で勝率上位（+18pt）","wind":"北東 2.7m/s"},{"v":"尼崎","vc":"13","rno":3,"close":"11:29","grade":"予選","t1":"1-2","t2":"1-3","picks":["1-2","1-3"],"cov":0.3778,"score":0.38825,"mrank":55,"why":"逃げ: ①の実力が一枚上（+17pt）","wind":"南西 1.4m/s"},{"v":"蒲郡","vc":"07","rno":8,"close":"18:33","grade":"予選","t1":"1-3","t2":"1-2","picks":["1-3","3-1"],"cov":0.357,"score":0.42015,"mrank":56,"why":"2着: ③は相手の中で勝率上位（+18pt）","wind":"東 2.5m/s"},{"v":"江戸川","vc":"03","rno":8,"close":"14:02","grade":"予選","t1":"1-2","t2":"1-4","picks":["1-2","2-1"],"cov":0.4244,"score":0.49322,"mrank":57,"why":"2着: ②は相手の中で勝率上位（+21pt）","wind":"北 0.8m/s"},{"v":"からつ","vc":"23","rno":9,"close":"12:36","grade":"予選","t1":"1-3","t2":"1-2","picks":["1-3","1-2"],"cov":0.3907,"score":0.40699,"mrank":58,"why":"逃げ: ①は今節の成績上位（+7pt） ／ 2着: ③は今節の展示が好調（+13pt）","wind":"南 2.4m/s"},{"v":"丸亀","vc":"15","rno":12,"close":"20:30","grade":"一般選抜","t1":"1-3","t2":"1-4","picks":["1-3","1-4"],"cov":0.4444,"score":0.43276,"mrank":59,"why":"逃げ: ①選手の経験値（+14pt）","wind":"南東 2.1m/s"},{"v":"江戸川","vc":"03","rno":9,"close":"14:30","grade":"予選特賞","t1":"1-3","t2":"1-5","picks":["1-3","3-1"],"cov":0.388,"score":0.41072,"mrank":60,"why":"2着: ③は相手の中で勝率上位（+26pt）","wind":"北 1.2m/s"},{"v":"桐生","vc":"01","rno":6,"close":"17:46","grade":"ドラドキ目玉","t1":"1-4","t2":"1-2","picks":["1-4","1-2"],"cov":0.4,"score":0.37991,"mrank":61,"why":"逃げ: ①の実力が一枚上（+32pt） ／ 2着: 1号艇vs5号艇の直近複勝率差（+16pt）","wind":"東 1.4m/s"},{"v":"丸亀","vc":"15","rno":2,"close":"15:41","grade":"予選","t1":"1-2","t2":"1-3","picks":["1-2","1-3"],"cov":0.3439,"score":0.40232,"mrank":62,"why":"2着: ②は相手の中で勝率上位（+19pt）","wind":"北東 1.4m/s"},{"v":"江戸川","vc":"03","rno":10,"close":"14:59","grade":"予選特賞","t1":"1-3","t2":"1-2","picks":["1-3","1-2"],"cov":0.3726,"score":0.36493,"mrank":63,"why":"2着: ③は今節の展示が好調（+12pt）","wind":"北 1.2m/s"},{"v":"丸亀","vc":"15","rno":7,"close":"17:55","grade":"ざるうどん７","t1":"1-4","t2":"1-5","picks":["1-4","1-5"],"cov":0.3705,"score":0.40096,"mrank":64,"why":"逃げ: ①の実力が一枚上（+15pt） ／ 2着: ④は相手の中で級別上位（+13pt）","wind":"東 2.3m/s"},{"v":"からつ","vc":"23","rno":7,"close":"11:35","grade":"予選","t1":"1-2","t2":"1-4","picks":["1-2","1-4"],"cov":0.3456,"score":0.4043,"mrank":65,"why":"2着: ②は相手の中で勝率上位（+20pt）","wind":"南 2.2m/s"},{"v":"児島","vc":"16","rno":1,"close":"10:50","grade":"予選","t1":"1-4","t2":"1-3","picks":["1-4","4-1"],"cov":0.3698,"score":0.41525,"mrank":66,"why":"2着: ④は相手の中で勝率上位（+16pt）","wind":"東 3.1m/s"},{"v":"とこなめ","vc":"08","rno":7,"close":"13:15","grade":"一般","t1":"1-3","t2":"1-5","picks":["1-3","1-5"],"cov":0.3516,"score":0.3717,"mrank":67,"why":"","wind":"南東 2.4m/s"},{"v":"丸亀","vc":"15","rno":5,"close":"17:01","grade":"予選","t1":"1-3","t2":"1-5","picks":["1-3","3-1"],"cov":0.3317,"score":0.35037,"mrank":68,"why":"2着: ③は相手の中で勝率上位（+19pt）","wind":"北東 2.3m/s"},{"v":"尼崎","vc":"13","rno":6,"close":"12:59","grade":"予選","t1":"1-2","t2":"1-3","picks":["1-2","1-3"],"cov":0.3483,"score":0.36814,"mrank":69,"why":"","wind":"西 1.7m/s"},{"v":"桐生","vc":"01","rno":9,"close":"19:14","grade":"準優勝戦","t1":"1-2","t2":"1-3","picks":["1-2","1-3"],"cov":0.3554,"score":0.38783,"mrank":70,"why":"","wind":"北東 1.4m/s"},{"v":"蒲郡","vc":"07","rno":6,"close":"17:37","grade":"予選","t1":"1-2","t2":"1-4","picks":["1-2","1-4"],"cov":0.3211,"score":0.3582,"mrank":71,"why":"2着: ②は相手の中で勝率上位（+20pt）","wind":"東 3.2m/s"},{"v":"鳴門","vc":"14","rno":11,"close":"13:39","grade":"特選","t1":"1-3","t2":"1-4","picks":["1-3","1-4"],"cov":0.3582,"score":0.36477,"mrank":72,"why":"2着: ③は相手の中で勝率上位（+17pt）","wind":"南 5.0m/s"},{"v":"とこなめ","vc":"08","rno":4,"close":"11:39","grade":"一般","t1":"1-2","t2":"1-3","picks":["1-2","2-1"],"cov":0.3552,"score":0.34622,"mrank":73,"why":"2着: ②は相手の中で勝率上位（+20pt）","wind":"南東 2.4m/s"},{"v":"鳴門","vc":"14","rno":10,"close":"13:03","grade":"特賞","t1":"1-3","t2":"1-4","picks":["1-3","1-4"],"cov":0.3512,"score":0.37286,"mrank":74,"why":"","wind":"南 4.4m/s"},{"v":"鳴門","vc":"14","rno":8,"close":"11:54","grade":"予選","t1":"1-3","t2":"1-2","picks":["1-3","1-2"],"cov":0.2919,"score":0.35142,"mrank":75,"why":"2着: ③は相手の中で勝率上位（+18pt）","wind":"南 5.5m/s"},{"v":"からつ","vc":"23","rno":10,"close":"13:07","grade":"予選特賞","t1":"1-2","t2":"1-3","picks":["1-2","2-1"],"cov":0.3127,"score":0.32623,"mrank":76,"why":"2着: ②は相手の中で勝率上位（+17pt）","wind":"南 2.7m/s"},{"v":"徳山","vc":"18","rno":6,"close":"11:10","grade":"予選","t1":"1-2","t2":"1-4","picks":["1-2","1-4"],"cov":0.3155,"score":0.35258,"mrank":77,"why":"逃げ: イン逃げが決まりやすい水面（+17pt） ／ 2着: ②は相手の中で勝率上位（+15pt）","wind":"南東 2.4m/s"},{"v":"尼崎","vc":"13","rno":2,"close":"11:03","grade":"予選","t1":"1-2","t2":"1-3","picks":["1-2","1-3"],"cov":0.3267,"score":0.31643,"mrank":78,"why":"","wind":"南 0.7m/s"},{"v":"児島","vc":"16","rno":9,"close":"14:52","grade":"予選特賞","t1":"1-4","t2":"1-3","picks":["1-4","1-3"],"cov":0.324,"score":0.33299,"mrank":79,"why":"2着: ④は相手の中で勝率上位（+19pt）","wind":"南東 3.3m/s"},{"v":"桐生","vc":"01","rno":5,"close":"17:19","grade":"一般","t1":"1-4","t2":"1-2","picks":["1-4","1-2"],"cov":0.3421,"score":0.38068,"mrank":80,"why":"2着: ④は相手の中で勝率上位（+23pt）","wind":"南東 1.8m/s"},{"v":"江戸川","vc":"03","rno":7,"close":"13:35","grade":"予選","t1":"1-3","t2":"1-2","picks":["1-3","3-1"],"cov":0.3154,"score":0.35459,"mrank":81,"why":"2着: ③は相手の中で勝率上位（+21pt）","wind":"北東 0.8m/s"},{"v":"桐生","vc":"01","rno":10,"close":"19:47","grade":"準優勝戦","t1":"1-3","t2":"1-2","picks":["1-3","1-2"],"cov":0.2615,"score":0.33989,"mrank":82,"why":"2着: ③は相手の中で勝率上位（+22pt）","wind":"北 1.1m/s"},{"v":"児島","vc":"16","rno":2,"close":"11:20","grade":"予選","t1":"1-3","t2":"1-2","picks":["1-3","1-2"],"cov":0.3131,"score":0.3553,"mrank":83,"why":"2着: ③は相手の中で勝率上位（+19pt）","wind":"東 2.6m/s"},{"v":"鳴門","vc":"14","rno":9,"close":"12:23","grade":"特賞","t1":"1-3","t2":"1-2","picks":["1-3","3-1"],"cov":0.3093,"score":0.33056,"mrank":84,"why":"2着: ③は相手の中で勝率上位（+18pt）","wind":"南 5.5m/s"},{"v":"丸亀","vc":"15","rno":4,"close":"16:32","grade":"予選","t1":"1-4","t2":"1-3","picks":["1-4","1-3"],"cov":0.3419,"score":0.39504,"mrank":85,"why":"2着: ④は相手の中で勝率上位（+19pt）","wind":"北東 2.9m/s"},{"v":"からつ","vc":"23","rno":4,"close":"10:01","grade":"おは４戦","t1":"1-2","t2":"1-4","picks":["1-2","2-1"],"cov":0.3176,"score":0.35551,"mrank":86,"why":"2着: ②は相手の中で勝率上位（+15pt）","wind":"南西 2.6m/s"},{"v":"鳴門","vc":"14","rno":6,"close":"10:55","grade":"予選","t1":"1-2","t2":"1-4","picks":["1-2","1-4"],"cov":0.3097,"score":0.35177,"mrank":87,"why":"2着: ②は相手の中で勝率上位（+17pt）","wind":"南東 4.9m/s"},{"v":"丸亀","vc":"15","rno":3,"close":"16:07","grade":"予選","t1":"1-2","t2":"1-4","picks":["1-2","1-4"],"cov":0.2694,"score":0.34091,"mrank":88,"why":"2着: ②は相手の中で級別上位（+11pt）","wind":"北 2.7m/s"},{"v":"鳴門","vc":"14","rno":2,"close":"09:01","grade":"どーなるなる","t1":"1-2","t2":"1-3","picks":["1-2","1-3"],"cov":0.2553,"score":0.32653,"mrank":89,"why":"","wind":"南東 3.8m/s"},{"v":"鳴門","vc":"14","rno":4,"close":"09:53","grade":"とにかくなる","t1":"1-2","t2":"1-3","picks":["1-2","2-1"],"cov":0.2968,"score":0.31761,"mrank":90,"why":"2着: ②は相手の中で勝率上位（+19pt）","wind":"南東 4.4m/s"},{"v":"からつ","vc":"23","rno":6,"close":"11:01","grade":"予選","t1":"1-2","t2":"1-3","picks":["1-2","2-1"],"cov":0.2883,"score":0.32728,"mrank":91,"why":"","wind":"南 2.5m/s"},{"v":"桐生","vc":"01","rno":8,"close":"18:43","grade":"ドラドキ５","t1":"1-2","t2":"1-4","picks":["1-2","2-4"],"cov":0.24,"score":0.28555,"mrank":92,"why":"","wind":"北東 1.1m/s"},{"v":"桐生","vc":"01","rno":4,"close":"16:47","grade":"一般","t1":"1-4","t2":"1-2","picks":["1-4","4-1"],"cov":0.2731,"score":0.28883,"mrank":93,"why":"2着: ④は今節の成績上位（+14pt）","wind":"南東 2.1m/s"},{"v":"徳山","vc":"18","rno":10,"close":"13:19","grade":"予選","t1":"1-2","t2":"1-4","picks":["1-2","2-1"],"cov":0.2888,"score":0.31584,"mrank":94,"why":"逃げ: イン逃げが決まりやすい水面（+18pt） ／ 2着: ②は相手の中で勝率上位（+21pt）","wind":"南東 2.4m/s"},{"v":"児島","vc":"16","rno":4,"close":"12:21","grade":"予選","t1":"1-5","t2":"1-2","picks":["1-5","1-2"],"cov":0.2413,"score":0.27006,"mrank":95,"why":"2着: ⑤は相手の中で勝率上位（+23pt）","wind":"東 2.7m/s"},{"v":"尼崎","vc":"13","rno":7,"close":"13:30","grade":"予選","t1":"1-2","t2":"1-4","picks":["1-2","1-4"],"cov":0.2647,"score":0.32698,"mrank":96,"why":"","wind":"南西 0.7m/s"},{"v":"蒲郡","vc":"07","rno":7,"close":"18:04","grade":"予選","t1":"1-3","t2":"1-4","picks":["1-3","3-1"],"cov":0.2603,"score":0.30438,"mrank":97,"why":"2着: ③のモーター2連率（+12pt）","wind":"東 2.2m/s"},{"v":"江戸川","vc":"03","rno":1,"close":"10:59","grade":"予選","t1":"1-3","t2":"1-2","picks":["1-3","1-2"],"cov":0.2371,"score":0.26254,"mrank":98,"why":"2着: ③は今節の展示が好調（+14pt）","wind":"北 1.2m/s"},{"v":"丸亀","vc":"15","rno":1,"close":"15:17","grade":"予選","t1":"1-2","t2":"1-3","picks":["1-2","2-3"],"cov":0.2569,"score":0.25234,"mrank":99,"why":"2着: ②は相手の中で勝率上位（+14pt）","wind":"北東 1.1m/s"},{"v":"桐生","vc":"01","rno":7,"close":"18:13","grade":"ドラドキ３","t1":"1-3","t2":"1-2","picks":["1-3","3-2"],"cov":0.2994,"score":0.26172,"mrank":100,"why":"2着: ③は相手の中で勝率上位（+22pt）","wind":"北東 1.1m/s"},{"v":"とこなめ","vc":"08","rno":3,"close":"11:12","grade":"一般","t1":"1-2","t2":"1-3","picks":["2-3","1-2"],"cov":0.2634,"score":0.25559,"mrank":101,"why":"2着: ②は相手の中で勝率上位（+22pt）","wind":"南東 2.4m/s"},{"v":"児島","vc":"16","rno":6,"close":"13:26","grade":"予選","t1":"1-2","t2":"1-3","picks":["2-3","1-2"],"cov":0.2813,"score":0.25426,"mrank":102,"why":"2着: ②は相手の中で勝率上位（+23pt）","wind":"東 3.6m/s"},{"v":"桐生","vc":"01","rno":3,"close":"16:17","grade":"一般","t1":"1-3","t2":"1-2","picks":["1-3","3-1"],"cov":0.2349,"score":0.24293,"mrank":103,"why":"2着: ③は相手の中で勝率上位（+14pt）","wind":"南東 2.3m/s"},{"v":"からつ","vc":"23","rno":8,"close":"12:06","grade":"８っぴータイ","t1":"1-4","t2":"1-2","picks":["4-2","1-4"],"cov":0.2226,"score":0.2355,"mrank":104,"why":"2着: ④は相手の中で勝率上位（+23pt）","wind":"南 2.0m/s"},{"v":"蒲郡","vc":"07","rno":4,"close":"16:40","grade":"予選","t1":"1-2","t2":"1-5","picks":["1-2","1-5"],"cov":0.1983,"score":0.22751,"mrank":105,"why":"","wind":"南東 3.7m/s"},{"v":"徳山","vc":"18","rno":5,"close":"10:40","grade":"予選","t1":"1-2","t2":"1-3","picks":["1-2","1-3"],"cov":0.1849,"score":0.22559,"mrank":106,"why":"","wind":"南東 2.4m/s"},{"v":"江戸川","vc":"03","rno":3,"close":"11:51","grade":"予選","t1":"1-3","t2":"1-5","picks":["1-3","3-1"],"cov":0.194,"score":0.21228,"mrank":107,"why":"","wind":"東 1.1m/s"},{"v":"鳴門","vc":"14","rno":7,"close":"11:22","grade":"予選","t1":"1-4","t2":"1-2","picks":["4-2","4-1"],"cov":0.2208,"score":0.20827,"mrank":108,"why":"2着: ④は相手の中で勝率上位（+23pt）","wind":"南 4.8m/s"},{"v":"徳山","vc":"18","rno":8,"close":"12:12","grade":"予選","t1":"1-2","t2":"1-4","picks":["1-2","1-4"],"cov":0.1761,"score":0.21228,"mrank":109,"why":"","wind":"南東 2.4m/s"},{"v":"蒲郡","vc":"07","rno":3,"close":"16:13","grade":"予選","t1":"1-2","t2":"1-3","picks":["2-3","3-2"],"cov":0.3315,"score":0.15821,"mrank":110,"why":"2着: ②は相手の中で勝率上位（+18pt）","wind":"南東 3.7m/s"},{"v":"蒲郡","vc":"07","rno":1,"close":"15:21","grade":"予選","t1":"1-3","t2":"1-2","picks":["1-3","1-2"],"cov":0.1676,"score":0.21228,"mrank":111,"why":"","wind":"南東 4.7m/s"},{"v":"蒲郡","vc":"07","rno":5,"close":"17:10","grade":"予選","t1":"1-5","t2":"1-4","picks":["1-5","5-1"],"cov":0.1715,"score":0.20182,"mrank":112,"why":"2着: ⑤は相手の中で勝率上位（+22pt）","wind":"南東 3.6m/s"},{"v":"児島","vc":"16","rno":10,"close":"15:25","grade":"予選特賞","t1":"1-3","t2":"1-2","picks":["3-2","1-3"],"cov":0.2127,"score":0.21228,"mrank":113,"why":"2着: ③のモーター2連率（+13pt）","wind":"南東 3.7m/s"},{"v":"桐生","vc":"01","rno":1,"close":"15:19","grade":"一般","t1":"1-2","t2":"1-3","picks":["2-3","3-2"],"cov":0.2716,"score":0.17505,"mrank":114,"why":"2着: ②は相手の中で勝率上位（+21pt）","wind":"南東 1.2m/s"},{"v":"徳山","vc":"18","rno":7,"close":"11:41","grade":"予選","t1":"1-2","t2":"1-4","picks":["2-4","4-2"],"cov":0.1975,"score":0.1536,"mrank":115,"why":"2着: ②は相手の中で級別上位（+11pt）","wind":"南東 2.4m/s"},{"v":"児島","vc":"16","rno":3,"close":"11:49","grade":"予選","t1":"1-4","t2":"1-2","picks":["4-2","4-1"],"cov":0.1717,"score":0.12764,"mrank":116,"why":"2着: ④は相手の中で勝率上位（+21pt）","wind":"東 2.2m/s"},{"v":"徳山","vc":"18","rno":11,"close":"13:51","grade":"予選","t1":"1-3","t2":"1-2","picks":["3-2","2-3"],"cov":0.1515,"score":0.12764,"mrank":117,"why":"","wind":"南東 2.4m/s"},{"v":"江戸川","vc":"03","rno":6,"close":"13:09","grade":"予選","t1":"1-3","t2":"1-2","picks":["3-2","2-3"],"cov":0.1798,"score":0.12764,"mrank":118,"why":"","wind":"東 1.0m/s"},{"v":"江戸川","vc":"03","rno":2,"close":"11:25","grade":"予選","t1":"1-2","t2":"1-6","picks":["2-1","2-6"],"cov":0.1551,"score":0.12764,"mrank":119,"why":"2着: ⑥のsession_exh_rel_last（+12pt）","wind":"北東 0.9m/s"},{"v":"鳴門","vc":"14","rno":5,"close":"10:27","grade":"予選","t1":"1-4","t2":"1-5","picks":["4-5","4-3"],"cov":0.1512,"score":0.12764,"mrank":120,"why":"","wind":"南東 5.1m/s"}];                     // このページの1日分（全レース）
+const SITE = window.SITE || {};               // site.js が無い・読めないときは空で動く
+// 閲覧可能な日付一覧（昇順）。★site.js がキャッシュで古いと当日が入っていないことがあるので補う
+const MANIFEST = [...new Set([...(SITE.manifest || []), PAGE_DATE])].sort();
+const GENERATED_AT = SITE.generated_at || "";
+const HI_THRESHOLD = 0.62;
+document.getElementById("n-shadow").textContent = SITE.n_shadow_days ?? "–";
+document.getElementById("agg-cov").textContent = SITE.agg_cov || "–";
+document.getElementById("agg-morning").textContent = SITE.agg_morning || "–";
+const MODE = "live";                      // "live" | "retro"（遡及検証） | "late"（後追い生成）
+
+const minutes = t => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+const iso = d => `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`;
+const jp = d => `${Number(d.slice(4,6))}月${Number(d.slice(6,8))}日`;
+const WEEK = ["日","月","火","水","木","金","土"];
+
+let nPer = 3;
+let sortKey = "close";
+let modelKey = "cov";  // "cov"=買い目の的中確率順 | "morning"=朝予測rank順
+// ★2026-09-12: 既定を Stage3 スコア順から cov 順へ。Stage3 はライブ56日で朝予測順に負け
+//   （上位3本 63.69% vs 71.43%）、表示%も全帯 +4〜5.7pt 過大だった。cov は同 1.67pt
+const venues = [...new Set(DAY.map(r => r.v))];
+let selected = new Set(venues);
+
+function pick(pool, n, exclude) {
+  const cmp = modelKey === "cov"
+    ? (a, b) => b.cov - a.cov
+    : (a, b) => a.mrank - b.mrank;
+  return pool
+    .filter(r => selected.has(r.v) && !exclude.has(r))
+    .sort(cmp)
+    .slice(0, n);
+}
+
+function boatChip(n) { return `<span class="boat b${n}">${n}</span>`; }
+function ticketHtml(t) {
+  const [a, b] = t.split("-");
+  return `<span class="ticket">${boatChip(a)}<span class="dash">–</span>${boatChip(b)}</span>`;
+}
+// 買い目は点数可変（Phase F）。picks を持たない過去の日は t1/t2 に落ちる
+function picksOf(r) { return r.picks || [r.t1, r.t2].filter(Boolean); }
+function isHit(r) { return picksOf(r).includes(r.res); }
+
+function raceHtml(r) {
+  const pct = Math.round(r.cov * 100);
+  const hi = modelKey === "cov" && r.cov >= HI_THRESHOLD;
+  let badge = "", resText = "";
+  if (r.res) {
+    const hit = isHit(r);
+    badge = `<span class="resbadge ${hit ? "hit" : "miss"}">${hit ? "的中" : "ハズレ"}</span>`;
+    resText = `　結果 ${r.res}`;
+  }
+  // 朝予測順モードでは右カラムに朝予測順位を出すため、story の順位表記は AI モードのみ
+  const story = (modelKey === "cov"
+    ? (r.mrank > 15 ? `朝予測 ${r.mrank}位 → 買い目確率で選出` : `朝予測 ${r.mrank}位`) + resText
+    : resText.trim());
+  const storyHtml = story ? `<div class="story">${story}</div>` : "";
+  const why = r.why ? `<div class="why">${r.why}</div>` : "";
+  // 外部リンクは URL の法則から組み立てる（サイトへの問い合わせはしない）
+  // 公式出走表: jcd=2桁ゼロ埋め / 競艇日和 枠別勝率: place_no=ゼロ埋めなし・slider=1
+  const official = `https://www.boatrace.jp/owpc/pc/race/racelist?rno=${r.rno}&jcd=${r.vc}&hd=${PAGE_DATE}`;
+  const biyori = `https://kyoteibiyori.com/race_shusso.php?place_no=${Number(r.vc)}&race_no=${r.rno}&hiduke=${PAGE_DATE}&slider=1`;
+  const links = `<span class="extlinks">
+      <a href="${official}" target="_blank" rel="noopener" title="公式出走表"><img src="assets/boatrace_rogo.jpg" alt="公式出走表"></a>
+      <a href="${biyori}" target="_blank" rel="noopener" title="競艇日和 枠別勝率"><img src="assets/biyori.png" alt="競艇日和 枠別勝率"></a>
+    </span>`;
+  // 右カラムは選出モードの評価値: 買い目確率順=確信度% / 朝予測順=朝モデルの日次順位
+  //（表示の較正は不採用。理由は src/model/calibration.py の docstring）
+  //（朝の confidence_score は的中確率として較正されていないため % 表示しない）
+  const conf = modelKey === "cov"
+    ? `<div class="conf${hi ? " top" : ""}"><div class="v">${pct}%</div><div class="l">確信度</div>${hi ? '<span class="hi">高確信</span>' : ""}</div>`
+    : `<div class="conf"><div class="v">${r.mrank}位</div><div class="l">朝予測順位</div></div>`;
+  return `<article class="race">
+    <div class="close"><div class="t">${r.close}</div><div class="l">締切</div></div>
+    <div class="meta">
+      <div class="name">${r.v} ${r.rno}R<span class="grade">${r.grade}</span>${r.wind ? `<span class="wind">${r.wind}</span>` : ""}${badge}${links}</div>
+      <div class="tickets">${picksOf(r).map(ticketHtml).join("")}</div>
+      ${why}
+      ${storyHtml}
+    </div>
+    ${conf}
+  </article>`;
+}
+
+function render() {
+  const lunchPool = DAY.filter(r => { const m = minutes(r.close); return m >= 660 && m < 900; });
+  const dayPool = DAY.filter(r => { const m = minutes(r.close); return m >= 660 && m < 1200; });
+  const lunch = pick(lunchPool, nPer, new Set());
+  // 3本=重複なし（ランチ選出を鉄板から除く）／10本=独立選出・重複あり
+  //（重複なしだと「ランチ4位＝鉄板1位」のレースがランチのみに出るため、本数を増やして吸収）
+  const overlap = nPer > 3;
+  const teppan = pick(dayPool, nPer, overlap ? new Set() : new Set(lunch));
+  document.getElementById("n-note").textContent =
+    overlap ? "※10本ずつはランチ・鉄板を独立に選出（同じレースが両方に載ることがあります）" : "";
+  document.getElementById("teppan-window").textContent =
+    overlap ? "締切 11:00–20:00" : "締切 11:00–20:00・ランチ選出を除く";
+  // 「確信度順/予測順位順」= 選出モードの評価値が強い順
+  const order = sortKey === "score"
+    ? (modelKey === "cov" ? (a, b) => b.cov - a.cov : (a, b) => a.mrank - b.mrank)
+    : (a, b) => minutes(a.close) - minutes(b.close);
+
+  document.getElementById("lunch-title").textContent = `ランチタイム ${lunch.length}本`;
+  document.getElementById("teppan-title").textContent = `鉄板 ${teppan.length}本`;
+  document.getElementById("lunch-list").innerHTML = lunch.length
+    ? lunch.sort(order).map(raceHtml).join("")
+    : '<div class="empty">選択した場に 11:00–15:00 締切のレースがありません</div>';
+  document.getElementById("teppan-list").innerHTML = teppan.length
+    ? teppan.sort(order).map(raceHtml).join("")
+    : '<div class="empty">選択した場に対象時間帯のレースがありません</div>';
+
+  const picks = [...new Set([...lunch, ...teppan])];  // 10本時はランチ/鉄板の重複を1本と数える
+  const decided = picks.filter(r => r.res);
+  const hits = decided.filter(isHit).length;
+  const dt = new Date(`${iso(PAGE_DATE)}T00:00:00`);
+  let line = `<strong>${PAGE_DATE.slice(0,4)}年${jp(PAGE_DATE)}（${WEEK[dt.getDay()]}）</strong>`;
+  if (MODE === "retro") {
+    line += `<span class="badge-retro">遡及検証</span>`;
+  } else if (MODE === "late") {
+    line += `<span class="badge-retro">後追い生成</span>`;
+  }
+  if (decided.length === picks.length && picks.length > 0) {
+    line += `　<span class="day-sum">結果確定: 表示中 ${picks.length}本中 ${hits}的中</span>`;
+  } else if (MODE === "live") {
+    if (GENERATED_AT) line += `　最終更新 ${GENERATED_AT}　<span>※更新は運用日のみ</span>`;
+  }
+  document.getElementById("dateline").innerHTML = line;
+}
+
+// ---- 日付ナビ（日別ページへのリンク遷移。file:// でも動くようフェッチは使わない）----
+(function buildNav() {
+  const i = MANIFEST.indexOf(PAGE_DATE);
+  const prev = i > 0 ? MANIFEST[i - 1] : null;
+  const next = i >= 0 && i < MANIFEST.length - 1 ? MANIFEST[i + 1] : null;
+  const nav = document.getElementById("datenav");
+  const mk = (d, label) => d
+    ? `<a class="nav" href="${d}.html">${label}</a>`
+    : `<span class="nav">${label}</span>`;
+  nav.insertAdjacentHTML("afterbegin", mk(prev, "← 前の日"));
+  nav.insertAdjacentHTML("beforeend", mk(next, "次の日 →"));
+  const pickEl = document.getElementById("datepick");
+  pickEl.value = iso(PAGE_DATE);
+  pickEl.min = iso(MANIFEST[0]);
+  pickEl.max = iso(MANIFEST[MANIFEST.length - 1]);
+  pickEl.addEventListener("change", e => {
+    const d = e.target.value.replaceAll("-", "");
+    if (MANIFEST.includes(d)) {
+      location.href = `${d}.html`;
+    } else {
+      document.getElementById("date-notice").textContent = "この日の予想はありません（運用なし）";
+      e.target.value = iso(PAGE_DATE);
+    }
+  });
+})();
+
+document.querySelectorAll("#seg-model button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    modelKey = btn.dataset.model;
+    document.querySelectorAll("#seg-model button").forEach(b => b.classList.toggle("on", b === btn));
+    document.getElementById("model-note").textContent =
+      modelKey === "morning" ? "※買い目の的中確率を使わず朝予測の順位のまま選出" : "";
+    document.querySelector('#seg-sort button[data-sort="score"]').textContent =
+      modelKey === "cov" ? "確信度順" : "予測順位順";
+    render();
+  });
+});
+document.querySelectorAll("#seg-n button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    nPer = Number(btn.dataset.n);
+    document.querySelectorAll("#seg-n button").forEach(b => b.classList.toggle("on", b === btn));
+    render();
+  });
+});
+document.querySelectorAll("#seg-sort button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    sortKey = btn.dataset.sort;
+    document.querySelectorAll("#seg-sort button").forEach(b => b.classList.toggle("on", b === btn));
+    render();
+  });
+});
+
+const chipsEl = document.getElementById("venue-chips");
+function renderChips() {
+  chipsEl.innerHTML =
+    `<button type="button" class="chip all${selected.size === venues.length ? " on" : ""}" data-v="__all__">全場</button>`
+    + venues.map(v =>
+        `<button type="button" class="chip${selected.has(v) ? " on" : ""}" data-v="${v}">${v}</button>`
+      ).join("");
+}
+chipsEl.addEventListener("click", e => {
+  const btn = e.target.closest("button.chip");
+  if (!btn) return;
+  const v = btn.dataset.v;
+  if (v === "__all__") {
+    selected = new Set(venues);
+  } else if (selected.size === venues.length) {
+    selected = new Set([v]);
+  } else {
+    selected.has(v) ? selected.delete(v) : selected.add(v);
+    if (selected.size === 0) selected = new Set(venues);
+  }
+  renderChips();
+  render();
+});
+
+renderChips();
+render();
+</script>
+</body>
+</html>
