@@ -715,7 +715,7 @@ let DAY = [{"v":"徳山","vc":"18","rno":3,"close":"09:35","grade":"決めトク
 //     cov + 下駄を抜いた差分になっており、上書きすると演出の pt が消える
 //     （applyData は DAY を丸ごと差し替えるだけでここは再実行しないが、念のため）
 for (const r of DAY) if (typeof r.cov === "number" && !r.live) r.score = r.cov;
-let GENERATED_AT = "2026-11-02 03:11 JST";
+let GENERATED_AT = "2026-11-02 08:01 JST";
 const HI_THRESHOLD = 0.62;   // 朝アラートの閾値（表示には使わない。参照用）
 const MODE = "live";
 const PAGE_SEC = 9;         // 左ペイン（本日の上位）を送る間隔
